@@ -1,0 +1,24 @@
+{
+  "name": "writing-command-line-node-tool",
+  "version": "1.0.1",
+  "description": "file search command line tool demo",
+  "main": "lib/filesearch",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wang490520334/node-filesearch.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wang490520334/node-filesearch/issues"
+  },
+  "homepage": "https://github.com/wang490520334/node-filesearch",
+  "preferGlobal": "true",
+  "bin": {
+    "filesearch" : "lib/filesearch.js",
+    "filesearch2" : "lib/filesearch2.js"
+  }
+}

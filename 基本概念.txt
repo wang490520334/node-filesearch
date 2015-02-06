@@ -1,0 +1,72 @@
+詳細文件參考 http://javascriptplayground.com/blog/2012/08/writing-a-command-line-node-tool/
+  文件利用grunt幫我們建構node project的樣板，有點像maven的archetype，但由於怪怪的，故我們就不透過grunt了，自己手動建立node project
+
+本範例我們將示範如何撰寫一 nodejs command line tool，可以在 npm install ourpackage -g 後，可以直接在cmd內把我們模組當command執行
+原因:因為我們先前所測試的Angular範例，利用bower及gulp建構，最後放上GitHup上，供使用者下載後直接使用，
+    但在上載至GitHub上專案，通常我們不會將bower_components及node_modules兩資料夾也push上去，
+    使用者自行於GitHup下載專案後仍須自行於cmd下達指令
+    npm install(安裝gulp建構時需要的相依程式)，及使用bower install(下載相關js css)，
+    雖gulp可以替我們下command line tool指令，但其第一個要執行gulp指令的相依仍必須透過bower install下載至 bower_components 內，
+    故我們希望透過npm模組來撰寫command line tool，將來只要安裝我們nodejs模組，下達command line指令，就會自動幫使用者下載專案並執行npm install及bower install指令
+我們先從如何撰寫簡單的 nodejs command line tool 開始
+
+
+1.建立一node專案
+  a.創建一專案空白資料夾
+  b.cd至專案資料夾
+  c.npm init --> 幫我們創建 package.json ，並填寫專案相關基本資料
+    name : 要發佈給大家使用，專案名必須全小寫
+    enter point : 我們填寫 lib/filesearch (預設為index.js，這表示我們將從 /lib/filesearch.js當作我們的進入點)
+    test command : 為測試程式的進入點 (這我們省略不填)
+    git repository : 填寫 https://github.com/wang490520334/node-filesearch.git (為將來專案要放在的位置，我們在github上開啟一新的空白repository)
+  d.自行於c.產出的package.js內最後的屬性後方加入
+      "preferGlobal": "true",  //標示使用者在npm install 我們專案時，會提醒建議全域安裝 ->npm install -g
+      "bin": { //標示當使用者在 cmd 下各種我們提供的指令時，應該要在哪裡找尋執行檔
+        "filesearch" : "lib/filesearch.js" //當下 filesearch 指令時
+      }
+  e.在專案內建立lib/filesearch.js
+      並於filesearch第一行內加入  #! /usr/bin/env node  告知執行此command line tool是透過 node 幫我們執行
+      (不分unix或windows，其其實會替我們在C:\Users\wesswang\AppData\Roaming\npm內產生一可執行檔，其內其實告知自己是透過node.exe filesearch.js來執行自己的，而C:\Users\wesswang\AppData\Roaming\npm在安裝npm時即被加入PATH)
+  f.撰寫 lib/filesearch.js 程式
+      我們於程式內簡單寫 console.log(process.argv);  --> process.argv 其可以取得所有 cmd 輸入的參數陣列
+  g.於本機安裝我們自己開發的 npm 套件  -->  npm link
+      其會把專案安裝在 C:\Users\wesswang\AppData\Roaming\npm 下
+  h.測試我們自行撰寫的 npm command line tool --> filesearch test
+      我們會發現process.argv所取得的參數陣列，我們的參數其實是從index 2 開始的，index 0為how the script is executed，index 1為where the executable is
+
+2.進階撰寫 : 我們根據1.的專案，進階撰寫另一個command line指令 : filesearch2
+  a.lib/filesearch2.js撰寫
+  b.其中我們利用 node 的 Node's Child Process library( require('child_process') ) ，其可以執行 cmd 指令 which runs a shell command and buffers the output
+        child_process 用法可參考 http://nodejs.org/api/child_process.html
+  c.而利用其 exec 模組，我們可以執行 cmd 指令，並非同步的傳入callback等待執行結果
+    使用exec()時，傳入第一個參數為 要執行的指令，第二個參數為 callback方法，而方法可接受參數及常見格式如:
+        function(err, stdout, stderr) { //stdout為執行回傳結果
+            if(err) throw err;
+            //rest of code
+        }
+  d.exec()其實在callback前可接受第二個 options 參數，傳入設定物件
+  e.重新將我們專案在本機上安裝 --> npm link
+  f.測試我們自行撰寫的 npm command line tool --> filesearch2 search (在目前目錄下找尋含search字眼的檔案)
+  g.不知道為什麼windows下 dir | fine "xxxx" 無法運作，就算了，只執行dir指令
+
+
+windows cmd編碼問題參考 http://blog.darkthread.net/post-2011-08-11-command-prompt-codepage.aspx
+
+
+3.將專案 publish as an npm module 供他人下載使用
+    a. 方法1 --> npm publish
+    b. 方法2. 透過 github
+        .you should make sure your project is a Git repository:
+            git init
+            git add . (如要加入全部檔案可以使用 git add .)
+            git commit -m "first commit"
+            git remote add origin https://github.com/wang490520334/node-filesearch.git  (新加一個遠端repository，其中 orgin 為名稱可自己取)
+            git push -u origin master
+        .Add node_modules/ to your .gitignore file, to make sure only your module code is pushed, and not the modules you use. These are dealt with when the user installs your module.
+        .Make sure your repository has a valid package.json (running npm link will verify this, if it works without error, you're fine).
+        .Push your repository to Github (or elsewhere) and make sure in your package.json, the repository object looks like so:
+            "repository": {
+               "type": "git",
+               "url": "git://github.com/JackFranklin/filesearch.git"
+             }
+        .npm publish
